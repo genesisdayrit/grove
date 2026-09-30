@@ -8,6 +8,7 @@ grove                   # pick a worktree interactively (↑/↓ or j/k, type to
 grove cd feat-auth      # jump straight to a worktree
 grove ls                # table of this repo's worktrees, most recently active first
 grove ls --paths        # one path per line, for scripts and agents
+grove env edit          # write this repo's private setup script (deps, .env, …)
 ```
 
 ## Install
@@ -56,6 +57,41 @@ Without it, `grove new`/`grove cd`/`grove` still work but only print the path.
 - **Output.** Navigating commands print only the path on stdout; progress and errors go to stderr. The picker draws on `/dev/tty`.
 
 `grove ls` columns: `*` marks the worktree you're in; STATUS is `clean` or `N changed` (lines of `git status --porcelain`); LAST ACTIVE is the later of the last commit and the newest file git reports as changed.
+
+## Setup scripts
+
+A new worktree only has tracked files: no `node_modules`, no `.env`. Give a repo a setup script and run it with `grove new <name> --env`, or later with `grove env setup`. Plain `grove new` never runs it.
+
+The script is yours alone. It lives at `~/.grove/<repo>/@env/setup`, next to the worktrees, and never in the repo, so teammates with different setups are unaffected.
+
+```bash
+grove env edit          # open it in $EDITOR (created from a template the first time)
+grove env               # where it is and whether it's ready
+grove env setup         # run it in the current worktree
+grove new foo --env     # create a worktree and run setup in it
+```
+
+To write it without an editor (handy for agents), pipe it in:
+
+```bash
+grove env edit <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cp "$GROVE_REPO_PATH/.env" .env
+pnpm install
+EOF
+```
+
+It runs with the new worktree as its working directory and these variables:
+
+| Variable | Value |
+| --- | --- |
+| `GROVE_REPO_PATH` | the original clone (copy `.env` files from here) |
+| `GROVE_WORKTREE_PATH` | the new worktree |
+| `GROVE_WORKTREE_NAME` | its folder name, e.g. `feat-auth` |
+| `GROVE_BRANCH` | its branch, e.g. `feat/auth` |
+
+Its output goes to stderr and it gets no stdin, so it can't stall waiting for input. If it fails during `grove new --env`, grove warns, keeps the worktree and still takes you there; fix the problem and run `grove env setup`.
 
 ## Configuration
 

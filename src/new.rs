@@ -1,12 +1,15 @@
 //! `grove new <name>`.
 
-use crate::{git, name, repo};
+use crate::{env, git, name, repo};
 use anyhow::{Result, anyhow, bail};
 use std::path::{Path, PathBuf};
 
-pub fn run(cwd: &Path, root: &Path, input: &str) -> Result<PathBuf> {
+pub fn run(cwd: &Path, root: &Path, input: &str, with_env: bool) -> Result<PathBuf> {
     let name = name::normalize(input)?;
     let repo = repo::resolve(cwd, root)?;
+    if with_env {
+        env::require_setup(&repo)?;
+    }
     repo.ensure_dir(root)?;
     let path = repo.dir.canonicalize()?.join(&name.folder);
 
@@ -47,6 +50,10 @@ pub fn run(cwd: &Path, root: &Path, input: &str) -> Result<PathBuf> {
     eprintln!("branch: {}", name.branch);
     eprintln!("folder: {}", name.folder);
     eprintln!("base:   {base}");
+    // A half-set-up worktree is still worth landing in: keep it and say how to retry.
+    if with_env && let Err(e) = env::setup(&repo, &path, &name.folder, &name.branch) {
+        eprintln!("warning: {e:#}; worktree kept. Rerun: grove env setup");
+    }
     Ok(path)
 }
 

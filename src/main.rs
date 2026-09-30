@@ -1,4 +1,5 @@
 mod config;
+mod env;
 mod git;
 mod init;
 mod name;
@@ -29,7 +30,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Cmd {
     /// Create a new branch + worktree from origin's default branch
-    New { name: String },
+    New {
+        name: String,
+        /// Also run this repo's setup script (`grove env`) in the new worktree
+        #[arg(long)]
+        env: bool,
+    },
     /// Jump to an existing worktree by name
     Cd { name: String },
     /// List this repo's grove worktrees, most recently active first
@@ -38,11 +44,24 @@ enum Cmd {
         #[arg(long)]
         paths: bool,
     },
+    /// Show or manage this repo's private setup script (`@env/setup`)
+    Env {
+        #[command(subcommand)]
+        command: Option<EnvCmd>,
+    },
     /// Print the shell function that lets grove cd (add `eval "$(grove init zsh)"` to your rc)
     Init { shell: init::Shell },
     /// Manage grove itself
     #[command(name = "self", subcommand)]
     SelfCmd(SelfCmd),
+}
+
+#[derive(Subcommand)]
+enum EnvCmd {
+    /// Run setup in the current worktree
+    Setup,
+    /// Open the setup script in $EDITOR (creating it from a template), or install piped input
+    Edit,
 }
 
 #[derive(Subcommand)]
@@ -78,8 +97,8 @@ fn run(cli: Cli) -> Result<()> {
     let root = config::root()?;
     let cwd = std::env::current_dir()?;
     match cli.command {
-        Some(Cmd::New { name }) => {
-            let path = new::run(&cwd, &root, &name)?;
+        Some(Cmd::New { name, env }) => {
+            let path = new::run(&cwd, &root, &name, env)?;
             emit_path(&path);
         }
         Some(Cmd::Cd { name }) => {
@@ -87,6 +106,14 @@ fn run(cli: Cli) -> Result<()> {
             emit_path(&nav::cd(&repo, &name)?);
         }
         Some(Cmd::Ls { paths }) => nav::ls(&repo::resolve(&cwd, &root)?, &cwd, paths)?,
+        Some(Cmd::Env { command }) => {
+            let repo = repo::resolve(&cwd, &root)?;
+            match command {
+                Some(EnvCmd::Setup) => env::rerun(&repo, &cwd)?,
+                Some(EnvCmd::Edit) => env::edit(&repo, &root)?,
+                None => env::status(&repo)?,
+            }
+        }
         Some(Cmd::Init { .. } | Cmd::SelfCmd(_)) => unreachable!("handled above"),
         None => {
             let repo = repo::resolve(&cwd, &root)?;
