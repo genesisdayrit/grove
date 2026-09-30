@@ -5,7 +5,11 @@ use common::*;
 #[test]
 fn new_creates_branch_and_worktree_and_prints_only_the_path() {
     let fx = Fixture::new();
-    let assert = fx.grove().args(["new", "my-feature"]).assert().success();
+    let assert = fx
+        .grove()
+        .args(["worktree", "add", "my-feature"])
+        .assert()
+        .success();
 
     let expected = fx.repo_dir().join("my-feature");
     assert_eq!(stdout_of(&assert), format!("{}\n", expected.display()));
@@ -69,7 +73,11 @@ fn new_when_offline_warns_and_falls_back_to_local_default_branch() {
     fx.git(&fx.clone, &["commit", "-m", "local work"]);
     let local_main = fx.git(&fx.clone, &["rev-parse", "main"]);
 
-    let assert = fx.grove().args(["new", "offline"]).assert().success();
+    let assert = fx
+        .grove()
+        .args(["worktree", "add", "offline"])
+        .assert()
+        .success();
 
     let wt = fx.repo_dir().join("offline");
     assert_eq!(fx.git(&wt, &["rev-parse", "HEAD"]), local_main);
@@ -86,7 +94,11 @@ fn new_without_any_remote_uses_local_default_branch() {
     fx.git(&fx.clone, &["remote", "remove", "origin"]);
     let local_main = fx.git(&fx.clone, &["rev-parse", "main"]);
 
-    let assert = fx.grove().args(["new", "lonely"]).assert().success();
+    let assert = fx
+        .grove()
+        .args(["worktree", "add", "lonely"])
+        .assert()
+        .success();
 
     assert_eq!(
         fx.git(&fx.repo_dir().join("lonely"), &["rev-parse", "HEAD"]),

@@ -4,6 +4,21 @@ All notable changes to grove are listed here. Each release's section becomes its
 
 ## Unreleased
 
+## [0.1.2] - 2026-09-30
+
+### Changed
+
+- **Breaking:** `grove new <name>` is now `grove worktree add <name>` (or `grove wt add <name>`). `grove new` is gone.
+- **Breaking:** a repo must be registered with `grove repo add` before `grove worktree add` or `grove env edit`/`setup` will work in it. Repos you've already used grove in are registered already.
+- The shell integration now hands grove a temp file (`GROVE_CD_FILE`) to write its destination to, instead of capturing stdout. Open a new shell after upgrading.
+
+### Added
+
+- `grove repo add [path] [--name <name>] [--env]` registers a clone without creating a worktree. Pick your own name with `--name` when two clones share a folder name.
+- `grove repo ls` lists registered repos, and `grove repo mv <new>` renames one, moving its worktrees with it.
+- `-r/--repo <name>` points any command at a registered repo from anywhere.
+- Outside a registered repo, `grove` and `grove ls` cover every repo (with each clone listed as `<repo>/@repo`); `-a/--all` does the same from inside one.
+
 ## [0.1.1] - 2026-09-30
 
 ### Added

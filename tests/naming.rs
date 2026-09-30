@@ -7,7 +7,7 @@ fn name_is_lowercased_and_invalid_chars_become_single_dashes() {
     let fx = Fixture::new();
     let assert = fx
         .grove()
-        .args(["new", "  Fix Login!!  Redirect "])
+        .args(["worktree", "add", "  Fix Login!!  Redirect "])
         .assert()
         .success();
 
@@ -22,7 +22,11 @@ fn name_is_lowercased_and_invalid_chars_become_single_dashes() {
 #[test]
 fn slash_is_kept_in_branch_but_flattened_in_folder() {
     let fx = Fixture::new();
-    let assert = fx.grove().args(["new", "Feat/Auth"]).assert().success();
+    let assert = fx
+        .grove()
+        .args(["worktree", "add", "Feat/Auth"])
+        .assert()
+        .success();
 
     let wt = fx.repo_dir().join("feat-auth");
     assert!(wt.is_dir());
@@ -38,7 +42,7 @@ fn slash_is_kept_in_branch_but_flattened_in_folder() {
 fn names_starting_with_at_are_rejected() {
     let fx = Fixture::new();
     fx.grove()
-        .args(["new", "@repo"])
+        .args(["worktree", "add", "@repo"])
         .assert()
         .failure()
         .stdout("")
@@ -49,7 +53,7 @@ fn names_starting_with_at_are_rejected() {
 fn names_that_normalize_to_nothing_are_rejected() {
     let fx = Fixture::new();
     fx.grove()
-        .args(["new", "!!!"])
+        .args(["worktree", "add", "!!!"])
         .assert()
         .failure()
         .stdout("");
@@ -60,7 +64,7 @@ fn existing_folder_fails_with_its_path() {
     let fx = Fixture::new();
     let wt = fx.new_worktree("dup");
     fx.grove()
-        .args(["new", "dup"])
+        .args(["worktree", "add", "dup"])
         .assert()
         .failure()
         .stdout("")
@@ -72,7 +76,7 @@ fn flattened_folder_clash_fails() {
     let fx = Fixture::new();
     fx.new_worktree("feat/auth");
     fx.grove()
-        .args(["new", "feat-auth"])
+        .args(["worktree", "add", "feat-auth"])
         .assert()
         .failure()
         .stderr(predicates::str::contains("feat-auth"));
@@ -83,7 +87,7 @@ fn existing_local_branch_fails() {
     let fx = Fixture::new();
     fx.git(&fx.clone, &["branch", "taken"]);
     fx.grove()
-        .args(["new", "taken"])
+        .args(["worktree", "add", "taken"])
         .assert()
         .failure()
         .stderr(predicates::str::contains("branch `taken` already exists"));
@@ -108,7 +112,7 @@ fn branch_existing_only_on_origin_fails() {
     );
 
     fx.grove()
-        .args(["new", "remote-only"])
+        .args(["worktree", "add", "remote-only"])
         .assert()
         .failure()
         .stderr(predicates::str::contains("origin/remote-only"));
@@ -120,7 +124,7 @@ fn git_ref_hierarchy_conflict_surfaces_gits_error() {
     let fx = Fixture::new();
     fx.git(&fx.clone, &["branch", "feat"]);
     fx.grove()
-        .args(["new", "feat/auth"])
+        .args(["worktree", "add", "feat/auth"])
         .assert()
         .failure()
         .stdout("")

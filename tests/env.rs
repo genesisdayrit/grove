@@ -16,7 +16,11 @@ fn write_setup(fx: &Fixture, body: &str) -> PathBuf {
 
 /// `grove new <name> --env`, asserting success; returns the worktree path.
 fn new_with_env(fx: &Fixture, name: &str) -> PathBuf {
-    let out = fx.grove().args(["new", name, "--env"]).assert().success();
+    let out = fx
+        .grove()
+        .args(["worktree", "add", name, "--env"])
+        .assert()
+        .success();
     PathBuf::from(stdout_of(&out).trim())
 }
 
@@ -58,7 +62,7 @@ fn setup_output_goes_to_stderr_and_it_cannot_read_stdin() {
 
     let assert = fx
         .grove()
-        .args(["new", "a", "--env"])
+        .args(["worktree", "add", "a", "--env"])
         .write_stdin("typed by the user\n")
         .assert()
         .success();
@@ -76,7 +80,11 @@ fn failed_setup_keeps_the_worktree_warns_and_still_prints_the_path() {
     let fx = Fixture::new();
     write_setup(&fx, "exit 3\n");
 
-    let assert = fx.grove().args(["new", "a", "--env"]).assert().success();
+    let assert = fx
+        .grove()
+        .args(["worktree", "add", "a", "--env"])
+        .assert()
+        .success();
 
     let wt = fx.repo_dir().join("a");
     assert!(wt.join("README.md").is_file());
@@ -91,7 +99,7 @@ fn new_without_env_flag_skips_setup() {
     let fx = Fixture::new();
     write_setup(&fx, "touch ran.txt\n");
 
-    fx.grove().args(["new", "a"]).assert().success();
+    fx.grove().args(["worktree", "add", "a"]).assert().success();
 
     let wt = fx.repo_dir().join("a");
     assert!(wt.join("README.md").is_file());
@@ -198,7 +206,7 @@ fn env_status_shows_the_script_path_and_whether_it_exists() {
     let present = fx.grove().arg("env").assert().success();
     let out = stdout_of(&present);
     assert!(out.contains(&script.display().to_string()), "{out}");
-    assert!(out.contains("grove new <name> --env"), "{out}");
+    assert!(out.contains("grove worktree add <name> --env"), "{out}");
 }
 
 #[test]
@@ -216,7 +224,7 @@ fn new_with_env_but_no_script_fails_before_creating_anything() {
     let fx = Fixture::new();
 
     fx.grove()
-        .args(["new", "a", "--env"])
+        .args(["worktree", "add", "a", "--env"])
         .assert()
         .failure()
         .stdout("")

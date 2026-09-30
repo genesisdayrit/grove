@@ -143,7 +143,85 @@ fn ls_with_no_worktrees_prints_nothing_to_stdout() {
 }
 
 #[test]
-fn ls_outside_a_repo_fails() {
+fn ls_outside_a_repo_lists_every_repo_with_its_clone() {
     let fx = Fixture::new();
-    fx.grove_in(&fx.home).arg("ls").assert().failure();
+    let a = fx.new_worktree("a");
+    let other = fx.another_clone("oss", "other");
+    fx.grove_in(&other).args(["repo", "add"]).assert().success();
+
+    let out = stdout_of(&fx.grove_in(&fx.home).arg("ls").assert().success());
+    let header: Vec<&str> = out.lines().next().unwrap().split_whitespace().collect();
+    assert_eq!(header[0], "REPO", "{out}");
+    let mut pairs: Vec<(String, String)> = rows(&out)
+        .into_iter()
+        .map(|r| (r[0].clone(), r[1].clone()))
+        .collect();
+    pairs.sort();
+    assert_eq!(
+        pairs,
+        [
+            ("myrepo".into(), "@repo".into()),
+            ("myrepo".into(), "a".into()),
+            ("other".into(), "@repo".into()),
+        ]
+    );
+
+    let paths = stdout_of(
+        &fx.grove_in(&fx.home)
+            .args(["ls", "--paths"])
+            .assert()
+            .success(),
+    );
+    let mut paths: Vec<&str> = paths.lines().collect();
+    paths.sort();
+    let mut want = vec![
+        fx.clone.to_str().unwrap(),
+        a.to_str().unwrap(),
+        other.to_str().unwrap(),
+    ];
+    want.sort();
+    assert_eq!(paths, want);
+}
+
+#[test]
+fn ls_all_goes_global_from_inside_a_repo_and_repo_picks_another() {
+    let fx = Fixture::new();
+    let a = fx.new_worktree("a");
+    let other = fx.another_clone("oss", "other");
+    fx.grove_in(&other).args(["repo", "add"]).assert().success();
+    fx.grove_in(&other)
+        .args(["worktree", "add", "x"])
+        .assert()
+        .success();
+
+    let out = stdout_of(&fx.grove_in(&a).args(["ls", "-a"]).assert().success());
+    assert!(out.contains("other"), "{out}");
+    let marked: Vec<&str> = out.lines().filter(|l| l.starts_with('*')).collect();
+    assert_eq!(marked.len(), 1, "{out}");
+    assert!(
+        marked[0].contains("myrepo") && marked[0].contains(" a "),
+        "{out}"
+    );
+
+    let out = stdout_of(
+        &fx.grove_in(&a)
+            .args(["ls", "--paths", "--repo", "other"])
+            .assert()
+            .success(),
+    );
+    assert_eq!(out.trim(), fx.root.join("other/x").display().to_string());
+
+    fx.grove_in(&a)
+        .args(["ls", "--all", "--repo", "other"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn ls_in_an_unregistered_clone_notes_it_and_shows_every_repo() {
+    let fx = Fixture::new();
+    let other = fx.another_clone("oss", "other");
+    let assert = fx.grove_in(&other).arg("ls").assert().success();
+    assert!(stdout_of(&assert).contains("myrepo"));
+    assert!(stderr_of(&assert).contains("grove repo add"));
 }
