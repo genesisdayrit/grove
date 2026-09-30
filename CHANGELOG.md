@@ -4,6 +4,8 @@ All notable changes to grove are listed here. Each release's section becomes its
 
 ## Unreleased
 
+## [0.1.2] - 2026-09-30
+
 ### Changed
 
 - **Breaking:** `grove new <name>` is now `grove worktree add <name>` (or `grove wt add <name>`). `grove new` is gone.

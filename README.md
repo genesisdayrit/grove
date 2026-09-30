@@ -35,7 +35,7 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/genesisdayrit/grove/rel
 **From source** (needs a Rust toolchain)
 
 ```bash
-cargo install --git https://github.com/genesisdayrit/grove --tag v0.1.0
+cargo install --git https://github.com/genesisdayrit/grove --tag v0.1.2
 ```
 
 Swap in the latest tag from the [releases page](https://github.com/genesisdayrit/grove/releases).
