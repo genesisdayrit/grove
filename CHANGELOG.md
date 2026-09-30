@@ -4,6 +4,8 @@ All notable changes to grove are listed here. Each release's section becomes its
 
 ## Unreleased
 
+## [0.1.0] - 2026-09-30
+
 ### Added
 
 - `grove new`, `grove cd`, `grove ls` and the interactive picker for creating and jumping between git worktrees.
