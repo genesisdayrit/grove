@@ -59,7 +59,7 @@ pub fn rerun(repo: &Repo, cwd: &Path) -> Result<()> {
     require_setup(repo)?;
     let all = worktrees::list(repo)?;
     let Some(wt) = worktrees::current(&all, cwd) else {
-        bail!("not in a grove worktree; setup only runs in worktrees made by `grove new`");
+        bail!("not in a grove worktree; setup only runs in worktrees made by `grove worktree add`");
     };
     setup(repo, &wt.path, &wt.name, wt.branch.as_deref().unwrap_or(""))
 }
@@ -76,8 +76,7 @@ set -euo pipefail
 
 /// `grove env edit`: with piped input, install it as the setup script;
 /// otherwise open the script (created from a template if missing) in `$EDITOR`.
-pub fn edit(repo: &Repo, root: &Path) -> Result<()> {
-    repo.ensure_dir(root)?;
+pub fn edit(repo: &Repo) -> Result<()> {
     let script = setup_script(repo);
     std::fs::create_dir_all(script.parent().unwrap())?;
 
@@ -121,7 +120,7 @@ fn make_executable(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// `grove env`: where the setup script lives and whether `grove new` will run it.
+/// `grove env`: where the setup script lives and whether it's ready to run.
 pub fn status(repo: &Repo) -> Result<()> {
     let script = setup_script(repo);
     println!("setup: {}", script.display());
@@ -130,7 +129,9 @@ pub fn status(repo: &Repo) -> Result<()> {
         Ok(m) if m.permissions().mode() & 0o111 == 0 => {
             println!("not executable; fix with `chmod +x` or `grove env edit`")
         }
-        Ok(_) => println!("ready; run it with `grove new <name> --env` or `grove env setup`"),
+        Ok(_) => {
+            println!("ready; run it with `grove worktree add <name> --env` or `grove env setup`")
+        }
     }
     Ok(())
 }

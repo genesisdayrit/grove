@@ -13,6 +13,8 @@ pub struct Worktree {
     pub path: PathBuf,
     /// `None` for a detached HEAD.
     pub branch: Option<String>,
+    /// `git worktree lock`ed.
+    pub locked: bool,
 }
 
 pub fn list(repo: &Repo) -> Result<Vec<Worktree>> {
@@ -24,7 +26,11 @@ pub fn list(repo: &Repo) -> Result<Vec<Worktree>> {
     for block in porcelain.split("\n\n") {
         let mut path = None;
         let mut branch = None;
+        let mut locked = false;
         for line in block.lines() {
+            if line == "locked" || line.starts_with("locked ") {
+                locked = true;
+            }
             if let Some(p) = line.strip_prefix("worktree ") {
                 path = Some(PathBuf::from(p));
             } else if let Some(b) = line.strip_prefix("branch ") {
@@ -41,7 +47,12 @@ pub fn list(repo: &Repo) -> Result<Vec<Worktree>> {
         if name.starts_with('@') {
             continue;
         }
-        out.push(Worktree { name, path, branch });
+        out.push(Worktree {
+            name,
+            path,
+            branch,
+            locked,
+        });
     }
     Ok(out)
 }
@@ -129,4 +140,14 @@ fn created(path: &Path) -> Option<SystemTime> {
         .and_then(|m| m.created())
         .or_else(|_| std::fs::metadata(path.join(".git")).and_then(|m| m.modified()))
         .ok()
+}
+
+/// The repo's original clone, dressed as a worktree for the global views.
+pub fn clone_entry(repo: &Repo) -> Worktree {
+    Worktree {
+        name: crate::repo::REPO_LINK.to_string(),
+        path: repo.clone.clone(),
+        branch: git::run(&repo.clone, &["symbolic-ref", "--quiet", "--short", "HEAD"]).ok(),
+        locked: false,
+    }
 }

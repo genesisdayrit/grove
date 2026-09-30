@@ -15,12 +15,20 @@ pub struct Fixture {
 }
 
 impl Fixture {
-    /// Origin whose default branch is `main`, cloned to `<tmp>/repos/myrepo`.
+    /// Origin whose default branch is `main`, cloned to `<tmp>/repos/myrepo`
+    /// and registered with grove.
     pub fn new() -> Self {
         Self::with_default_branch("main")
     }
 
     pub fn with_default_branch(branch: &str) -> Self {
+        let fx = Self::unregistered(branch);
+        fx.grove().args(["repo", "add"]).assert().success();
+        fx
+    }
+
+    /// Like `new`, but the clone isn't registered with grove.
+    pub fn unregistered(branch: &str) -> Self {
         let tmp = TempDir::new().unwrap();
         // Canonicalize so macOS /var -> /private/var doesn't bite path comparisons.
         let base = tmp.path().canonicalize().unwrap();
@@ -134,12 +142,31 @@ impl Fixture {
 
     /// Create a worktree, asserting success; returns its path.
     pub fn new_worktree(&self, name: &str) -> PathBuf {
-        let out = self.grove().args(["new", name]).assert().success();
+        let out = self
+            .grove()
+            .args(["worktree", "add", name])
+            .assert()
+            .success();
         PathBuf::from(
             String::from_utf8(out.get_output().stdout.clone())
                 .unwrap()
                 .trim(),
         )
+    }
+
+    /// Clone origin again to `<tmp>/<parent>/<basename>`; returns the path.
+    pub fn another_clone(&self, parent: &str, basename: &str) -> PathBuf {
+        let path = self.base().join(parent).join(basename);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        self.git(
+            &self.base(),
+            &[
+                "clone",
+                self.origin.to_str().unwrap(),
+                path.to_str().unwrap(),
+            ],
+        );
+        path
     }
 
     pub fn repo_dir(&self) -> PathBuf {
