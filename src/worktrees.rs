@@ -70,6 +70,10 @@ impl Details {
 }
 
 impl Worktree {
+    pub fn branch_label(&self) -> &str {
+        self.branch.as_deref().unwrap_or("(detached)")
+    }
+
     pub fn details(&self) -> Result<Details> {
         let changed_paths = self.changed_paths()?;
         let last_commit = git::run(&self.path, &["log", "-1", "--format=%ct"])

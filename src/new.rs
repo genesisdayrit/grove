@@ -16,7 +16,7 @@ pub fn run(cwd: &Path, root: &Path, input: &str) -> Result<PathBuf> {
 
     let base = base_ref(&repo.clone)?;
 
-    let has_ref = |r: &str| git::ok(&repo.clone, &["show-ref", "--verify", "--quiet", r]);
+    let has_ref = |r: &str| git::has_ref(&repo.clone, r);
     if has_ref(&format!("refs/heads/{}", name.branch)) {
         bail!(
             "branch `{}` already exists in {}",
@@ -100,17 +100,7 @@ fn remote_head(clone: &Path) -> Option<String> {
 /// Best local guess at the default branch: whatever origin/HEAD names, else
 /// `main`/`master`, else the clone's current branch.
 fn local_default_branch(clone: &Path) -> Result<String> {
-    let exists = |b: &str| {
-        git::ok(
-            clone,
-            &[
-                "show-ref",
-                "--verify",
-                "--quiet",
-                &format!("refs/heads/{b}"),
-            ],
-        )
-    };
+    let exists = |b: &str| git::has_ref(clone, &format!("refs/heads/{b}"));
     if let Some(b) = origin_head(clone).filter(|b| exists(b)) {
         return Ok(b);
     }

@@ -51,14 +51,10 @@ fn new_branch_does_not_track_the_default_branch() {
 }
 
 fn common_git_ok(fx: &Fixture, dir: &std::path::Path, args: &[&str]) -> bool {
-    std::process::Command::new("git")
-        .current_dir(dir)
-        .args(args)
-        .env("HOME", &fx.home)
-        .output()
-        .unwrap()
-        .status
-        .success()
+    let mut cmd = std::process::Command::new("git");
+    cmd.current_dir(dir).args(args);
+    fx.git_env(&mut cmd);
+    cmd.output().unwrap().status.success()
 }
 
 #[test]

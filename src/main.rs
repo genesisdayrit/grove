@@ -38,7 +38,7 @@ enum Cmd {
         paths: bool,
     },
     /// Print the shell function that lets grove cd (add `eval "$(grove init zsh)"` to your rc)
-    Init { shell: String },
+    Init { shell: init::Shell },
 }
 
 fn main() -> ExitCode {
@@ -54,7 +54,7 @@ fn main() -> ExitCode {
 
 fn run(cli: Cli) -> Result<()> {
     if let Some(Cmd::Init { shell }) = &cli.command {
-        print!("{}", init::script(shell)?);
+        print!("{}", init::script(*shell));
         return Ok(());
     }
     let root = config::root()?;
@@ -84,6 +84,14 @@ fn run(cli: Cli) -> Result<()> {
 fn emit_path(path: &Path) {
     println!("{}", path.display());
     if std::env::var_os("GROVE_SHELL").is_none() {
-        eprintln!("hint: add `eval \"$(grove init zsh)\"` to your shell rc to cd automatically");
+        let shell = std::env::var("SHELL").unwrap_or_default();
+        let shell = if shell.ends_with("/bash") {
+            "bash"
+        } else {
+            "zsh"
+        };
+        eprintln!(
+            "hint: add `eval \"$(grove init {shell})\"` to your shell rc to cd automatically"
+        );
     }
 }

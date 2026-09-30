@@ -31,7 +31,12 @@ fn expand_tilde(s: &str) -> Result<PathBuf> {
     Ok(PathBuf::from(s))
 }
 
+/// The grove root, made absolute against the working directory.
 pub fn root() -> Result<PathBuf> {
+    Ok(std::env::current_dir()?.join(configured_root()?))
+}
+
+fn configured_root() -> Result<PathBuf> {
     if let Some(r) = env::var_os("GROVE_ROOT")
         && !r.is_empty()
     {

@@ -71,7 +71,7 @@ impl Fixture {
         self.tmp.path().canonicalize().unwrap()
     }
 
-    fn git_env(&self, cmd: &mut StdCommand) {
+    pub fn git_env(&self, cmd: &mut StdCommand) {
         cmd.env("HOME", &self.home)
             .env("GIT_CONFIG_GLOBAL", self.home.join(".gitconfig"))
             .env("GIT_CONFIG_NOSYSTEM", "1");

@@ -53,24 +53,22 @@ pub fn pick(repo: &Repo) -> Result<Option<PathBuf>> {
     let all = worktrees::list(repo)?;
     let rows = by_last_active(&all)?;
     if rows.is_empty() {
-        bail!(
-            "no grove worktrees for {} yet; create one with `grove new <name>`",
-            repo.name
-        );
+        bail!("{}", no_worktrees(repo));
     }
     let names = rows.iter().map(|(w, _)| w.name.clone()).collect();
     let details = rows
         .iter()
-        .map(|(w, d)| {
-            format!(
-                "{}  {}",
-                w.branch.as_deref().unwrap_or("(detached)"),
-                d.status()
-            )
-        })
+        .map(|(w, d)| format!("{}  {}", w.branch_label(), d.status()))
         .collect();
     let choice = tui::pick(&format!("grove · {}", repo.name), names, details)?;
     Ok(choice.map(|i| rows[i].0.path.clone()))
+}
+
+fn no_worktrees(repo: &Repo) -> String {
+    format!(
+        "no grove worktrees for {} yet; create one with `grove new <name>`",
+        repo.name
+    )
 }
 
 fn by_last_active(all: &[Worktree]) -> Result<Vec<(&Worktree, worktrees::Details)>> {
@@ -93,10 +91,7 @@ pub fn ls(repo: &Repo, cwd: &Path, paths_only: bool) -> Result<()> {
         return Ok(());
     }
     if rows.is_empty() {
-        eprintln!(
-            "no grove worktrees for {} yet; create one with `grove new <name>`",
-            repo.name
-        );
+        eprintln!("{}", no_worktrees(repo));
         return Ok(());
     }
 
@@ -113,7 +108,7 @@ pub fn ls(repo: &Repo, cwd: &Path, paths_only: bool) -> Result<()> {
                 }
                 .to_string(),
                 w.name.clone(),
-                w.branch.clone().unwrap_or_else(|| "(detached)".into()),
+                w.branch_label().to_string(),
                 ago(now, d.created),
                 ago(now, d.last_active),
                 d.status(),

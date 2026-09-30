@@ -157,3 +157,47 @@ fn config_file_is_never_created() {
         .success();
     assert!(!fx.home.join(".config/grove").exists());
 }
+
+#[test]
+fn every_command_from_a_same_basename_clone_names_the_owner() {
+    let fx = Fixture::new();
+    fx.new_worktree("a");
+    let other = fx.base().join("elsewhere").join("myrepo");
+    std::fs::create_dir_all(other.parent().unwrap()).unwrap();
+    fx.git(
+        &fx.base(),
+        &[
+            "clone",
+            fx.origin.to_str().unwrap(),
+            other.to_str().unwrap(),
+        ],
+    );
+
+    for args in [vec!["ls"], vec!["cd", "a"], vec![]] {
+        fx.grove_in(&other)
+            .args(&args)
+            .assert()
+            .failure()
+            .stdout("")
+            .stderr(predicates::str::contains(fx.clone.display().to_string()));
+    }
+}
+
+#[test]
+fn relative_grove_root_is_resolved_against_the_working_directory() {
+    let fx = Fixture::new();
+    let assert = fx
+        .grove()
+        .env("GROVE_ROOT", "../trees")
+        .args(["new", "a"])
+        .assert()
+        .success();
+    let expected = fx.clone.parent().unwrap().join("trees/myrepo/a");
+    assert_eq!(stdout_of(&assert).trim(), expected.display().to_string());
+    fx.grove_in(&expected)
+        .env("GROVE_ROOT", "../../../trees")
+        .args(["cd", "a"])
+        .assert()
+        .success()
+        .stdout(format!("{}\n", expected.display()));
+}

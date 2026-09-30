@@ -28,7 +28,9 @@ pub fn resolve(cwd: &Path, root: &Path) -> Result<Repo> {
         .to_string_lossy()
         .into_owned();
     let dir = root.join(&name);
-    Ok(Repo { clone, name, dir })
+    let repo = Repo { clone, name, dir };
+    repo.check_owner()?;
+    Ok(repo)
 }
 
 fn clone_from_git(cwd: &Path) -> Option<PathBuf> {
@@ -65,8 +67,7 @@ fn clone_from_root(cwd: &Path, root: &Path) -> Result<PathBuf> {
 }
 
 impl Repo {
-    /// Create `<root>/<repo>/` and its `@repo` link, or verify an existing link
-    /// points at this clone (two clones with the same basename would collide).
+    /// Create the root marker, `<root>/<repo>/` and its `@repo` link.
     pub fn ensure_dir(&self, root: &Path) -> Result<()> {
         std::fs::create_dir_all(root).with_context(|| format!("creating {}", root.display()))?;
         let marker = root.join(".metadata_never_index");
@@ -77,23 +78,31 @@ impl Repo {
             .with_context(|| format!("creating {}", self.dir.display()))?;
 
         let link = self.dir.join(REPO_LINK);
-        match std::fs::symlink_metadata(&link) {
-            Err(_) => std::os::unix::fs::symlink(&self.clone, &link)
-                .with_context(|| format!("creating {}", link.display()))?,
-            Ok(_) => {
-                let target = link.canonicalize().with_context(|| {
-                    format!("{} is dangling; remove it and retry", link.display())
-                })?;
-                if target != self.clone.canonicalize()? {
-                    bail!(
-                        "{} already belongs to {} (another clone named `{}`), not {}",
-                        self.dir.display(),
-                        target.display(),
-                        self.name,
-                        self.clone.display()
-                    );
-                }
-            }
+        if std::fs::symlink_metadata(&link).is_err() {
+            std::os::unix::fs::symlink(&self.clone, &link)
+                .with_context(|| format!("creating {}", link.display()))?;
+        }
+        self.check_owner()
+    }
+
+    /// If `@repo` exists it must resolve to this clone (compared as real paths);
+    /// otherwise another clone with the same basename owns `<root>/<repo>`.
+    fn check_owner(&self) -> Result<()> {
+        let link = self.dir.join(REPO_LINK);
+        if std::fs::symlink_metadata(&link).is_err() {
+            return Ok(());
+        }
+        let target = link
+            .canonicalize()
+            .with_context(|| format!("{} is dangling; remove it and retry", link.display()))?;
+        if target != self.clone.canonicalize()? {
+            bail!(
+                "{} already belongs to {} (another clone named `{}`), not {}",
+                self.dir.display(),
+                target.display(),
+                self.name,
+                self.clone.display()
+            );
         }
         Ok(())
     }

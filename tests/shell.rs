@@ -136,3 +136,15 @@ fn wrapper_stays_put_and_propagates_failure() {
         );
     }
 }
+
+#[test]
+fn hint_names_the_users_shell() {
+    let fx = Fixture::new();
+    fx.new_worktree("a");
+    fx.grove()
+        .env("SHELL", "/bin/bash")
+        .args(["cd", "a"])
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("grove init bash"));
+}

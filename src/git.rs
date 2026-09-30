@@ -23,6 +23,11 @@ pub fn run(dir: &Path, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
+/// True if `refname` (e.g. `refs/heads/main`) exists.
+pub fn has_ref(dir: &Path, refname: &str) -> bool {
+    ok(dir, &["show-ref", "--verify", "--quiet", refname])
+}
+
 /// True if git exits successfully.
 pub fn ok(dir: &Path, args: &[&str]) -> bool {
     output(dir, args)

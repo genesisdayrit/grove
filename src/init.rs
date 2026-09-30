@@ -4,8 +4,6 @@
 //! the path it prints on stdout, and `cd`s there. Only navigating commands are
 //! captured; everything else passes straight through.
 
-use anyhow::{Result, bail};
-
 const FUNCTION: &str = r#"grove() {
   case "${1-}" in
     ""|new|cd)
@@ -24,14 +22,19 @@ const FUNCTION: &str = r#"grove() {
 }
 "#;
 
-pub fn script(shell: &str) -> Result<String> {
-    let rc = match shell {
-        "zsh" => "~/.zshrc",
-        "bash" => "~/.bashrc",
-        other => bail!("unsupported shell `{other}` (supported: zsh, bash)"),
+#[derive(Clone, Copy, clap::ValueEnum)]
+pub enum Shell {
+    Zsh,
+    Bash,
+}
+
+pub fn script(shell: Shell) -> String {
+    let (name, rc) = match shell {
+        Shell::Zsh => ("zsh", "~/.zshrc"),
+        Shell::Bash => ("bash", "~/.bashrc"),
     };
-    Ok(format!(
-        "# grove shell integration. Add to {rc}:\n#   eval \"$(grove init {shell})\"\n{}",
-        FUNCTION.replace("__SHELL__", shell)
-    ))
+    format!(
+        "# grove shell integration. Add to {rc}:\n#   eval \"$(grove init {name})\"\n{}",
+        FUNCTION.replace("__SHELL__", name)
+    )
 }
