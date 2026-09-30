@@ -6,6 +6,7 @@ mod nav;
 mod new;
 mod picker;
 mod repo;
+mod self_update;
 mod tui;
 mod worktrees;
 
@@ -39,6 +40,19 @@ enum Cmd {
     },
     /// Print the shell function that lets grove cd (add `eval "$(grove init zsh)"` to your rc)
     Init { shell: init::Shell },
+    /// Manage grove itself
+    #[command(name = "self", subcommand)]
+    SelfCmd(SelfCmd),
+}
+
+#[derive(Subcommand)]
+enum SelfCmd {
+    /// Update grove to the latest release
+    Update {
+        /// Only report whether a newer release exists
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -53,9 +67,13 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<()> {
-    if let Some(Cmd::Init { shell }) = &cli.command {
-        print!("{}", init::script(*shell));
-        return Ok(());
+    match &cli.command {
+        Some(Cmd::Init { shell }) => {
+            print!("{}", init::script(*shell));
+            return Ok(());
+        }
+        Some(Cmd::SelfCmd(SelfCmd::Update { check })) => return self_update::run(*check),
+        _ => {}
     }
     let root = config::root()?;
     let cwd = std::env::current_dir()?;
@@ -69,7 +87,7 @@ fn run(cli: Cli) -> Result<()> {
             emit_path(&nav::cd(&repo, &name)?);
         }
         Some(Cmd::Ls { paths }) => nav::ls(&repo::resolve(&cwd, &root)?, &cwd, paths)?,
-        Some(Cmd::Init { .. }) => unreachable!("handled above"),
+        Some(Cmd::Init { .. } | Cmd::SelfCmd(_)) => unreachable!("handled above"),
         None => {
             let repo = repo::resolve(&cwd, &root)?;
             if let Some(path) = nav::pick(&repo)? {
