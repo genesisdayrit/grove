@@ -42,8 +42,8 @@ pub fn setup(repo: &Repo, worktree: &Path, name: &str, branch: &str) -> Result<(
     }
 }
 
-/// `grove env setup`: run setup again for the grove worktree containing `cwd`.
-pub fn rerun(repo: &Repo, cwd: &Path) -> Result<()> {
+/// Fail unless the repo has a setup script to run.
+pub fn require_setup(repo: &Repo) -> Result<()> {
     let script = setup_script(repo);
     if !script.exists() {
         bail!(
@@ -51,6 +51,12 @@ pub fn rerun(repo: &Repo, cwd: &Path) -> Result<()> {
             script.display()
         );
     }
+    Ok(())
+}
+
+/// `grove env setup`: run setup again for the grove worktree containing `cwd`.
+pub fn rerun(repo: &Repo, cwd: &Path) -> Result<()> {
+    require_setup(repo)?;
     let all = worktrees::list(repo)?;
     let Some(wt) = worktrees::current(&all, cwd) else {
         bail!("not in a grove worktree; setup only runs in worktrees made by `grove new`");
@@ -124,7 +130,7 @@ pub fn status(repo: &Repo) -> Result<()> {
         Ok(m) if m.permissions().mode() & 0o111 == 0 => {
             println!("not executable; fix with `chmod +x` or `grove env edit`")
         }
-        Ok(_) => println!("runs on `grove new` (skip with --no-env)"),
+        Ok(_) => println!("ready; run it with `grove new <name> --env` or `grove env setup`"),
     }
     Ok(())
 }

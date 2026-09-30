@@ -60,15 +60,15 @@ Without it, `grove new`/`grove cd`/`grove` still work but only print the path.
 
 ## Setup scripts
 
-A new worktree only has tracked files: no `node_modules`, no `.env`. Give a repo a setup script and `grove new` runs it in every new worktree.
+A new worktree only has tracked files: no `node_modules`, no `.env`. Give a repo a setup script and run it with `grove new <name> --env`, or later with `grove env setup`. Plain `grove new` never runs it.
 
 The script is yours alone. It lives at `~/.grove/<repo>/@env/setup`, next to the worktrees, and never in the repo, so teammates with different setups are unaffected.
 
 ```bash
 grove env edit          # open it in $EDITOR (created from a template the first time)
-grove env               # where it is and whether `grove new` will run it
-grove env setup         # run it again in the current worktree
-grove new foo --no-env  # skip it once
+grove env               # where it is and whether it's ready
+grove env setup         # run it in the current worktree
+grove new foo --env     # create a worktree and run setup in it
 ```
 
 To write it without an editor (handy for agents), pipe it in:
@@ -91,7 +91,7 @@ It runs with the new worktree as its working directory and these variables:
 | `GROVE_WORKTREE_NAME` | its folder name, e.g. `feat-auth` |
 | `GROVE_BRANCH` | its branch, e.g. `feat/auth` |
 
-Its output goes to stderr and it gets no stdin, so it can't stall waiting for input. If it fails, grove warns, keeps the worktree and still takes you there; fix the problem and run `grove env setup`.
+Its output goes to stderr and it gets no stdin, so it can't stall waiting for input. If it fails during `grove new --env`, grove warns, keeps the worktree and still takes you there; fix the problem and run `grove env setup`.
 
 ## Configuration
 

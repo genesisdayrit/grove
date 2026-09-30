@@ -29,12 +29,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Create a new branch + worktree from origin's default branch, then run its setup
+    /// Create a new branch + worktree from origin's default branch
     New {
         name: String,
-        /// Skip this repo's `@env/setup` script
+        /// Also run this repo's setup script (`grove env`) in the new worktree
         #[arg(long)]
-        no_env: bool,
+        env: bool,
     },
     /// Jump to an existing worktree by name
     Cd { name: String },
@@ -58,7 +58,7 @@ enum Cmd {
 
 #[derive(Subcommand)]
 enum EnvCmd {
-    /// Run setup again in the current worktree
+    /// Run setup in the current worktree
     Setup,
     /// Open the setup script in $EDITOR (creating it from a template), or install piped input
     Edit,
@@ -97,8 +97,8 @@ fn run(cli: Cli) -> Result<()> {
     let root = config::root()?;
     let cwd = std::env::current_dir()?;
     match cli.command {
-        Some(Cmd::New { name, no_env }) => {
-            let path = new::run(&cwd, &root, &name, !no_env)?;
+        Some(Cmd::New { name, env }) => {
+            let path = new::run(&cwd, &root, &name, env)?;
             emit_path(&path);
         }
         Some(Cmd::Cd { name }) => {

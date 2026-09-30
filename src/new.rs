@@ -7,6 +7,9 @@ use std::path::{Path, PathBuf};
 pub fn run(cwd: &Path, root: &Path, input: &str, with_env: bool) -> Result<PathBuf> {
     let name = name::normalize(input)?;
     let repo = repo::resolve(cwd, root)?;
+    if with_env {
+        env::require_setup(&repo)?;
+    }
     repo.ensure_dir(root)?;
     let path = repo.dir.canonicalize()?.join(&name.folder);
 

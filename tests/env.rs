@@ -14,8 +14,14 @@ fn write_setup(fx: &Fixture, body: &str) -> PathBuf {
     path
 }
 
+/// `grove new <name> --env`, asserting success; returns the worktree path.
+fn new_with_env(fx: &Fixture, name: &str) -> PathBuf {
+    let out = fx.grove().args(["new", name, "--env"]).assert().success();
+    PathBuf::from(stdout_of(&out).trim())
+}
+
 #[test]
-fn new_runs_setup_in_the_worktree_with_grove_variables() {
+fn new_with_env_runs_setup_in_the_worktree_with_grove_variables() {
     let fx = Fixture::new();
     write_setup(
         &fx,
@@ -29,7 +35,7 @@ fn new_runs_setup_in_the_worktree_with_grove_variables() {
 "#,
     );
 
-    let wt = fx.new_worktree("feat/auth");
+    let wt = new_with_env(&fx, "feat/auth");
 
     let ran = std::fs::read_to_string(wt.join("ran.txt")).unwrap();
     assert_eq!(
@@ -52,7 +58,7 @@ fn setup_output_goes_to_stderr_and_it_cannot_read_stdin() {
 
     let assert = fx
         .grove()
-        .args(["new", "a"])
+        .args(["new", "a", "--env"])
         .write_stdin("typed by the user\n")
         .assert()
         .success();
@@ -70,7 +76,7 @@ fn failed_setup_keeps_the_worktree_warns_and_still_prints_the_path() {
     let fx = Fixture::new();
     write_setup(&fx, "exit 3\n");
 
-    let assert = fx.grove().args(["new", "a"]).assert().success();
+    let assert = fx.grove().args(["new", "a", "--env"]).assert().success();
 
     let wt = fx.repo_dir().join("a");
     assert!(wt.join("README.md").is_file());
@@ -81,11 +87,11 @@ fn failed_setup_keeps_the_worktree_warns_and_still_prints_the_path() {
 }
 
 #[test]
-fn no_env_skips_setup() {
+fn new_without_env_flag_skips_setup() {
     let fx = Fixture::new();
     write_setup(&fx, "touch ran.txt\n");
 
-    fx.grove().args(["new", "a", "--no-env"]).assert().success();
+    fx.grove().args(["new", "a"]).assert().success();
 
     let wt = fx.repo_dir().join("a");
     assert!(wt.join("README.md").is_file());
@@ -157,7 +163,7 @@ fn env_edit_with_piped_input_installs_an_executable_setup() {
     assert_eq!(std::fs::read_to_string(&script).unwrap(), body);
     let mode = std::fs::metadata(&script).unwrap().permissions().mode();
     assert_eq!(mode & 0o111, 0o111, "{mode:o}");
-    let wt = fx.new_worktree("a");
+    let wt = new_with_env(&fx, "a");
     assert!(wt.join("ran.txt").exists());
 }
 
@@ -192,7 +198,7 @@ fn env_status_shows_the_script_path_and_whether_it_exists() {
     let present = fx.grove().arg("env").assert().success();
     let out = stdout_of(&present);
     assert!(out.contains(&script.display().to_string()), "{out}");
-    assert!(out.contains("runs on `grove new`"), "{out}");
+    assert!(out.contains("grove new <name> --env"), "{out}");
 }
 
 #[test]
@@ -203,4 +209,19 @@ fn env_status_flags_a_script_that_is_not_executable() {
 
     let out = stdout_of(&fx.grove().arg("env").assert().success());
     assert!(out.contains("not executable"), "{out}");
+}
+
+#[test]
+fn new_with_env_but_no_script_fails_before_creating_anything() {
+    let fx = Fixture::new();
+
+    fx.grove()
+        .args(["new", "a", "--env"])
+        .assert()
+        .failure()
+        .stdout("")
+        .stderr(predicates::str::contains("grove env edit"));
+
+    assert!(!fx.repo_dir().join("a").exists());
+    assert!(!fx.git(&fx.clone, &["branch", "--list", "a"]).contains('a'));
 }
