@@ -4,6 +4,10 @@ All notable changes to grove are listed here. Each release's section becomes its
 
 ## Unreleased
 
+### Added
+
+- Per-repo setup scripts: `grove new` runs `~/.grove/<repo>/@env/setup` in each new worktree to install dependencies, copy `.env` files and so on. The script is private to you and never committed. Manage it with `grove env`, `grove env edit` and `grove env setup`; skip it with `grove new --no-env`.
+
 ## [0.1.0] - 2026-09-30
 
 ### Added
