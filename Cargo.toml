@@ -2,14 +2,24 @@
 name = "grove"
 version = "0.1.0"
 edition = "2024"
+description = "Create and jump between git worktrees from the terminal"
+repository = "https://github.com/genesisdayrit/grove"
+homepage = "https://github.com/genesisdayrit/grove"
 
 [dependencies]
 anyhow = "1.0.104"
+axoupdater = { version = "0.10.2", features = ["blocking"] }
 clap = { version = "4.6.7", features = ["derive"] }
 crossterm = "0.29.0"
+tokio = { version = "1", features = ["rt"] }
 toml = "1.1.6"
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
 predicates = "3.1.4"
 tempfile = "3.27.0"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
